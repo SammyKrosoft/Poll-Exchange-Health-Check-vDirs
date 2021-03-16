@@ -1,28 +1,33 @@
-
-
 #Default Configuration for all scripts
-#Import-Module SSCExchange -Force
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ScriptName = $MyInvocation.MyCommand.ToString()
-#Read-SSCExchangeConfig $ScriptPath $ScriptName
 
+# Force TLS1.2 protocol
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$counter = 0
 
-$logfile = "D:\ExchangeAdmin\Scripts\Monitoring\logs\HeathCheck.log"
+#Initializing variables
+$counter = 0
+$OutputPath = "c:\temp\"
+$LogFileName = "HealthCheck.txt"
+$logfile = $OutputPath + $LogFileName
+
+$ExchangeLoadBalancerURL = "mail.CanadaSam.ca"
+$ADInternalDomainFQDN = ""
+
+If (!(Test-Path -Path $OutputPath)){New-Item -Folder "C:\temp" -Force}
 
 
 function HealthCheck ($ExchangeServer)
 {
     $StartTime = Get-Date
 
-    if ($ExchangeServer -eq "email-courriel.rcmp-grc.gc.ca")
+    if ($ExchangeServer -eq "$ExchangeLoadBalancerURL")
     {
         $Health = Invoke-WebRequest "https://$($ExchangeServer)/mapi/healthcheck.htm"
     } 
     else 
     {
-        $Health = Invoke-WebRequest "http://$($ExchangeServer).natl.rcmp-grc.gc.ca/mapi/healthcheck.htm"
+        $Health = Invoke-WebRequest "http://$($ExchangeServer).$ADInternalDomainFQDN/mapi/healthcheck.htm"
     }
 
         
@@ -52,13 +57,13 @@ function HealthCheck ($ExchangeServer)
 
     $StartTime = Get-Date
 
-    if ($ExchangeServer -eq "email-courriel.rcmp-grc.gc.ca")
+    if ($ExchangeServer -eq "$ExchangeLoadBalancerURL")
     {
         $Health = Invoke-WebRequest "https://$($ExchangeServer)/owa/healthcheck.htm"
     } 
     else 
     {
-        $Health = Invoke-WebRequest "http://$($ExchangeServer).natl.rcmp-grc.gc.ca/owa/healthcheck.htm"
+        $Health = Invoke-WebRequest "http://$($ExchangeServer).$ADInternalDomainFQDN/owa/healthcheck.htm"
     }
 
         
@@ -97,7 +102,7 @@ while ($Counter -lt 100)
         HealthCheck $ExchangeServer  
     }
 
-    HealthCheck "email-courriel.rcmp-grc.gc.ca"
+    HealthCheck "$ExchangeLoadBalancerURL"
 
 
     #write-host "$(get-date) - Total Time taken: $TotalTimeTaken"
